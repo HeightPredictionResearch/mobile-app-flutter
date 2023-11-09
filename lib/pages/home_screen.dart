@@ -1,68 +1,40 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:height_prediction/pages/camera_screen.dart';
-import 'package:image_picker/image_picker.dart'; // Import the image_picker package
-import 'package:http/http.dart' as http; // Import the http package
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:dio/dio.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatelessWidget {
+  final ImagePicker _imagePicker = ImagePicker();
+  final Dio _dio = Dio();
 
-  @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
+  HomeScreen({super.key});
 
-class _HomeScreenState extends State<HomeScreen> {
-  final picker = ImagePicker();
-  XFile? pickedImage; // To store the picked image file
+  Future<void> _pickImageFromGallery() async {
+    final pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
 
-  Future<void> pickImageFromGallery() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        pickedImage = pickedFile;
+      final imageFile = File(pickedFile.path);
+
+      // Create FormData and append the image file
+      FormData formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(imageFile.path),
       });
 
-      // Convert the picked image to a base64 string
-      final bytes = await pickedFile.readAsBytes();
-      final base64String = base64Encode(bytes);
-
-      // Implement your logic with the base64 string (e.g., send it to the backend)
-      sendImageToBackend(base64String);
-    }
-  }
-
-  // Send the image to the Flask backend
-  Future<void> sendImageToBackend(String base64String) async {
-    const baseUrl =
-        'https://heightprediction-hloiyts3ha-et.a.run.app'; // Your backend URL
-
-    // Define the request body
-    final Map<String, String> body = {
-      'image': base64String,
-    };
-
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/predict'),
-        body: body,
-      );
-      print('-----------------');
-      print(base64String);
-      print(response);
-
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        // Handle the response from the backend as needed
-        print('Received response from backend: $responseBody');
-      } else {
-        // Handle the error
-        print('Error: ${response.statusCode}');
+      try {
+        // Make a POST request to your server to upload the image
+        var response = await _dio.post(
+            'https://heightprediction-hloiyts3ha-et.a.run.app/api/v2/predict',
+            data: formData);
+        print(response.data);
+        // Handle the response as needed
+        // You can show a success message or navigate to a different screen
+      } catch (e) {
+        // Handle errors
+        print('Error uploading image: $e');
+        // You can show an error message or perform error handling here
       }
-    } catch (error) {
-      // Handle the HTTP request error
-      print('HTTP Request Error: $error');
     }
   }
 
@@ -70,37 +42,26 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your App'),
+        title: const Text('Camera & Gallery Example'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Welcome to Your App!',
-              style: TextStyle(fontSize: 24),
-            ),
+          children: [
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CameraScreen()),
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const CameraScreen(),
+                  ),
                 );
               },
-              child: const Text('Turn On Camera'),
+              child: const Text('Take Picture from Camera'),
             ),
             ElevatedButton(
-              onPressed: () {
-                pickImageFromGallery(); // Call the function to pick an image
-              },
-              child: const Text('Pick Image from Gallery'),
+              onPressed: _pickImageFromGallery,
+              child: const Text('Pick Picture from Gallery'),
             ),
-            if (pickedImage != null)
-              Image.file(
-                File(pickedImage!.path),
-                width: 200,
-                height: 200,
-              ),
           ],
         ),
       ),
