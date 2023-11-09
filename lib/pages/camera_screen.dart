@@ -3,7 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final Function(String) onImageCapture;
+
+  const CameraScreen({super.key, required this.onImageCapture});
 
   @override
   _CameraScreenState createState() => _CameraScreenState();
@@ -40,7 +42,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (response.statusCode == 200) {
       print('Image uploaded successfully');
-      print(response.body);
+      widget.onImageCapture(response.body);
     } else {
       print('Failed to upload image. Status code: ${response.statusCode}');
     }

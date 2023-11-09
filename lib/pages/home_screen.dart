@@ -1,14 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:height_prediction/pages/camera_screen.dart';
+import 'package:height_prediction/pages/response_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final Dio _dio = Dio();
+  String responseBody = '';
 
-  HomeScreen({super.key});
+  void navigateToResponseScreen(String responseBody) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ResponseScreen(responseBody),
+      ),
+    );
+  }
 
   Future<void> _pickImageFromGallery() async {
     final pickedFile =
@@ -27,13 +42,14 @@ class HomeScreen extends StatelessWidget {
         var response = await _dio.post(
             'https://heightprediction-hloiyts3ha-et.a.run.app/api/v2/predict',
             data: formData);
-        print(response.data);
-        // Handle the response as needed
-        // You can show a success message or navigate to a different screen
+
+        setState(() {
+          responseBody = response.data.toString();
+        });
+
+        navigateToResponseScreen(responseBody);
       } catch (e) {
-        // Handle errors
         print('Error uploading image: $e');
-        // You can show an error message or perform error handling here
       }
     }
   }
@@ -52,7 +68,14 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const CameraScreen(),
+                    builder: (context) => CameraScreen(
+                      onImageCapture: (response) {
+                        setState(() {
+                          responseBody = response;
+                        });
+                        navigateToResponseScreen(responseBody);
+                      },
+                    ),
                   ),
                 );
               },
