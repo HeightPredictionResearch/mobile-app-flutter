@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:height_prediction/pages/camera_screen.dart';
 import 'package:height_prediction/pages/response_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+
 import 'dart:io';
 import 'package:dio/dio.dart';
 
@@ -15,7 +17,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final Dio _dio = Dio();
+
   String responseBody = '';
+  bool isLoading = false;
 
   void navigateToResponseScreen(String responseBody) {
     Navigator.of(context).push(
@@ -26,6 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _pickImageFromGallery() async {
+    setState(() {
+      isLoading = true; // Set isLoading to true
+    });
     final pickedFile =
         await _imagePicker.pickImage(source: ImageSource.gallery);
 
@@ -44,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
             data: formData);
 
         setState(() {
+          isLoading = false;
           responseBody = response.data.toString();
         });
 
@@ -51,6 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
       } catch (e) {
         print('Error uploading image: $e');
       }
+    } else {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -61,33 +73,37 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Camera & Gallery Example'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => CameraScreen(
-                      onImageCapture: (response) {
-                        setState(() {
-                          responseBody = response;
-                        });
-                        navigateToResponseScreen(responseBody);
+          child: isLoading
+              ? SpinKitCircle(
+                  color: Colors.blue, size: 50.0) // Display loading spinner
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CameraScreen(
+                              onImageCapture: (response) {
+                                setState(() {
+                                  responseBody = response;
+                                });
+                                navigateToResponseScreen(responseBody);
+                              },
+                            ),
+                          ),
+                        );
                       },
+                      child: Text('Take Image and Send'),
                     ),
-                  ),
-                );
-              },
-              child: const Text('Take Picture from Camera'),
-            ),
-            ElevatedButton(
-              onPressed: _pickImageFromGallery,
-              child: const Text('Pick Picture from Gallery'),
-            ),
-          ],
-        ),
-      ),
+                    ElevatedButton(
+                      onPressed: _pickImageFromGallery,
+                      child: Text('Pick Image and Send'),
+                    ),
+                  ],
+                ),
+        )
     );
   }
 }

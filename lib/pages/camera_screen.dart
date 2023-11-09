@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:http/http.dart' as http;
 
 class CameraScreen extends StatefulWidget {
@@ -13,8 +14,12 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final ImagePicker _imagePicker = ImagePicker();
+  bool isLoading = false;
 
   Future<void> _pickImageFromCamera() async {
+    setState(() {
+      isLoading = true; // Set isLoading to true
+    });
     final pickedFile = await _imagePicker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
@@ -23,6 +28,10 @@ class _CameraScreenState extends State<CameraScreen> {
       // Call the function to upload the image or handle it as needed
       uploadImage(imageBytes);
     }
+    // Once the image is sent, set isLoading back to false
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> uploadImage(List<int> imageBytes) async {
@@ -55,15 +64,19 @@ class _CameraScreenState extends State<CameraScreen> {
         title: const Text('Camera Screen'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: _pickImageFromCamera,
-              child: const Text('Take Picture from Camera'),
-            ),
-          ],
-        ),
+        child: isLoading ? 
+          const SpinKitCircle(
+            color: Colors.blue, 
+            size: 50.0
+          ): Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _pickImageFromCamera,
+                child: const Text('Take Picture from Camera'),
+              ),
+            ],
+          ),
       ),
     );
   }
