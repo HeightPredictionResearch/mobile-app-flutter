@@ -14,7 +14,7 @@ class ResponseScreen extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          responseBody,
+          'Tinggi anak: $responseBody cm',
           style: const TextStyle(fontSize: 20.0),
         ),
       ),
