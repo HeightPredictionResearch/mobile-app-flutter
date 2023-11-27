@@ -1,35 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:height_prediction/pages/auth/login_screen.dart';
 import 'package:height_prediction/pages/child/child_list_screen.dart';
 import 'package:height_prediction/pages/child/child_registration_screen.dart';
-import 'package:height_prediction/pages/response_screen.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:http/http.dart' as http;
-
-import 'dart:io';
-import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final String baseUrl = 'https://heightprediction-hloiyts3ha-et.a.run.app';
-  final ImagePicker _imagePicker = ImagePicker();
-  final Dio _dio = Dio();
+  String? userName; // Added to store the user's name
 
-  String responseBody = '';
-  bool isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _checkToken();
+  }
 
-  void navigateToResponseScreen(String responseBody) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ResponseScreen(responseBody),
-      ),
-    );
+  Future<void> _checkToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token == null || token.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } else {
+      // Decode the token to get user information
+      Map<String, dynamic> decodedToken = json.decode(
+        utf8.decode(base64.decode(token.split('.')[1])),
+      );
+
+      // Extract the user's name
+      String? name = decodedToken['user_name'];
+
+      // Update the state to trigger a rebuild
+      setState(() {
+        userName = name;
+      });
+    }
   }
 
   void _navigateToChildRegistration() {
@@ -46,162 +60,98 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _pickImageFromGallery() async {
-    setState(() {
-      isLoading = true; // Set isLoading to true
-    });
-    final pickedFile =
-        await _imagePicker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      final imageFile = File(pickedFile.path);
-
-      // Create FormData and append the image file
-      FormData formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(imageFile.path),
-      });
-
-      try {
-        // Make a POST request to your server to upload the image
-        var response = await _dio.post(
-          '$baseUrl/api/v2/predict',
-          data: formData
-        );
-
-        setState(() {
-          isLoading = false;
-          responseBody = response.data.toString();
-        });
-
-        navigateToResponseScreen(responseBody);
-      } catch (e) {
-        print('Error uploading image: $e');
-      }
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _pickImageFromCamera() async {
-    final pickedFile = await _imagePicker.pickImage(source: ImageSource.camera);
-    setState(() {
-      isLoading = true;
-    });
-
-    if (pickedFile != null) {
-      final imageBytes = await pickedFile.readAsBytes();
-
-      // Call the function to upload the image or handle it as needed
-      await uploadImage(imageBytes);
-    }
-    // Once the image is sent, set isLoading back to false
-    setState(() {
-      isLoading = false;
-    });
-  }
-
-  Future<void> uploadImage(List<int> imageBytes) async {
-    var url = '$baseUrl/api/v2/predict'; 
-    var request = http.MultipartRequest('POST', Uri.parse(url));
-
-    // Create a MultipartFile from the image bytes
-    request.files.add(http.MultipartFile.fromBytes(
-      'image', // Field name for the image
-      imageBytes, // List of image bytes
-      filename: 'image.jpg', // Specify a filename
-    ));
-
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode == 200) {
-      setState(() {
-        responseBody = response.body.toString();
-      });
-      navigateToResponseScreen(responseBody);
-    } else {
-      print('Failed to upload image. Status code: ${response.statusCode}');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Aplikasi Prediksi Tinggi Anak'),
+        title: const Text('Beranda'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.remove('token');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              });
+            },
+          ),
+        ],
       ),
       body: Center(
-        child: Container(
-          // width: double.infinity,
-          // decoration: const BoxDecoration(
-          //   image: DecorationImage(
-          //     image: AssetImage('assets/background.jpeg'), // Update the path to your image
-          //     fit: BoxFit.fill, // You can use BoxFit.contain for a different scaling strategy
-          //   ),
-          // ),
-          child: isLoading
-            ? const Column (
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget> [
-                SpinKitCircle(color: Colors.blue, size: 50.0),
-                Text('Menunggu Hasil Prediksi'),
-              ] // Display loading spinner
-            )
-            : Container(
-              padding: const EdgeInsets.all(16.0),
-              child: GridView.count(
-                crossAxisCount: 2, // Number of columns
-                mainAxisSpacing:
-                    16.0, // Spacing between items in the main axis (vertical spacing)
-                crossAxisSpacing:
-                    16.0, // Spacing between items in the cross axis (horizontal spacing)
-                children: [
-                  // Menu item 1 - Take Image and Send
-                  ElevatedButton(
-                    onPressed: _pickImageFromCamera,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Take Image and Send'),
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Display welcome message if the user's name is available
+              if (userName != null)
+                Text(
+                  'Welcome $userName!',
+                  style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                ),
+              const SizedBox(height: 20.0),
 
-                  // Menu item 2 - Pick Image From Gallery
-                  ElevatedButton(
-                    onPressed: _pickImageFromGallery,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white, 
-                    ),
-                    child: const Text('Pick Image From Gallery'),
-                  ),
-
-                  // Menu item 3 - Register Child
-                  ElevatedButton(
-                    onPressed: _navigateToChildRegistration,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Pendaftaran Anak'),
-                  ),
-
-                  // Menu item 4 - List Child
-                  ElevatedButton(
-                    onPressed: _navigateToChildList,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Daftar Anak Anda'),
-                  ),
-                ],
+              // Display image above the form
+              Image.asset(
+                'assets/image1.png',
+                height: 250.0, // Adjust the height as needed
               ),
-            ),
-        )
-      )
+              const SizedBox(height: 20.0),
+
+              // Menu item 1 - Register Child
+              ElevatedButton(
+                onPressed: _navigateToChildRegistration,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink,
+                  padding: const EdgeInsets.all(20.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                  ),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.child_care, size: 40.0),
+                    SizedBox(height: 10.0),
+                    Text(
+                      'Pendaftaran Anak',
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20.0),
+
+              // Menu item 2 - List Child
+              ElevatedButton(
+                onPressed: _navigateToChildList,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: const EdgeInsets.all(20.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                  ),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.list, size: 40.0),
+                    SizedBox(height: 10.0),
+                    Text(
+                      'Daftar Anak Anda',
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

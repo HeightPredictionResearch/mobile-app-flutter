@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:height_prediction/pages/home_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+  const RegistrationScreen({Key? key}) : super(key: key);
 
   @override
   _RegistrationScreenState createState() => _RegistrationScreenState();
@@ -16,8 +16,9 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final String baseUrl = 'https://heightprediction-hloiyts3ha-et.a.run.app';
   final Dio _dio = Dio();
-  
+
   bool isLoading = false;
+  bool obscureText = true; 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -47,30 +48,40 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
-      } else {
-        // Show error message for registration failure
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Registration Failed'),
-            content: const Text('Failed to register. Please try again.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
       }
     } catch (e) {
-      print('Error during registration: $e');
-      // Handle other registration errors if necessary
+      if (e is DioError && e.response != null) {
+        // DioError with a response
+        print(
+            'Failed registration response: ${e.response!.statusCode} - ${e.response!.data}');
+        _showErrorDialog('Invalid email or password. Please try again.');
+      } else {
+        // DioError without a response
+        print('Error during registration: $e');
+        _showErrorDialog('System Error');
+      }
     } finally {
       setState(() {
         isLoading = false;
       });
     }
+  }
+
+  // Helper method to show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Register Failed'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -80,50 +91,95 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         title: const Text('Register'),
       ),
       body: isLoading
-        ? const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
                   SpinKitCircle(color: Colors.blue, size: 50.0),
                   Text('Loading'),
-                ] // Display loading spinner
-              )
-        : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Aplikasi Pengukuran Tinggi Badan Anak',
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    // Display image above the form
+                    Image.asset(
+                      'assets/image1.png',
+                      height: 250.0,
+                    ),
+                    const SizedBox(height: 20.0),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Name',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextFormField(
+                      controller: passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureText
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              obscureText = !obscureText;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: obscureText,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _register,
+                      child: const Text('Register'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to the LoginScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginScreen()),
+                        );
+                      },
+                      child: const Text('Already have an account? Login'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _register,
-              child: const Text('Register'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                // Navigate to the LoginScreen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              child: const Text('Already have an account? Login'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
