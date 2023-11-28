@@ -18,6 +18,8 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
 
   String selectedDate = "";
   bool isLoading = false;
+  String? nameErrorText;
+  String? dateErrorText;
 
   Future<void> _registerChild() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -28,6 +30,20 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
 
     final String name = nameController.text;
     final String birthDate = selectedDate;
+
+    // Validate fields
+    String? nameError = _validateNotEmpty(name, 'Nama Anak');
+    String? dateError = _validateNotEmpty(selectedDate, 'Tanggal Lahir');
+
+    if (nameError != null || dateError != null) {
+      // Display validation errors below the respective fields
+      setState(() {
+        nameErrorText = nameError;
+        dateErrorText = dateError;
+        isLoading = false;
+      });
+      return;
+    }
 
     try {
       final response = await _dio.post('$baseUrl/api/v1/child',
@@ -62,6 +78,15 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
         dateController.text = selectedDate;
       });
     }
+  }
+
+  // Validation function to check if a field is not empty
+  String? _validateNotEmpty(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return '$fieldName cannot be empty';
+    }
+
+    return null;
   }
 
   // Helper method to show error dialog
@@ -128,10 +153,15 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Child Name',
+                  labelText: 'Nama Anak',
                   border: OutlineInputBorder(),
                 ),
               ),
+              if (nameErrorText != null)
+                Text(
+                  nameErrorText!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               const SizedBox(height: 16),
               // TextFormField for date picker
               TextFormField(
@@ -139,7 +169,7 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
                 controller: dateController,
                 onTap: () => _selectDate(context),
                 decoration: const InputDecoration(
-                  labelText: 'Birth Date',
+                  labelText: 'Tanggal Lahir',
                   suffixIcon: Icon(Icons.calendar_today),
                   border: OutlineInputBorder(),
                 ),
@@ -150,6 +180,11 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
                   return null;
                 },
               ),
+              if (dateErrorText != null)
+                Text(
+                  dateErrorText!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _registerChild,

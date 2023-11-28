@@ -81,11 +81,10 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
   }
 
   Future<void> _pickImageFromGallery() async {
+    final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
     setState(() {
       tableIsLoading = true;
     });
-    final pickedFile =
-        await _imagePicker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
@@ -116,14 +115,18 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
           tableIsLoading = false;
         });
       }
+    } else {
+      setState(() {
+        tableIsLoading = false;
+      });
     }
   }
 
   Future<void> _pickImageFromCamera() async {
+    final pickedFile = await _imagePicker.pickImage(source: ImageSource.camera);
     setState(() {
       tableIsLoading = true;
     });
-    final pickedFile = await _imagePicker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
@@ -152,6 +155,10 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
           tableIsLoading = false;
         });
       }
+    } else {
+      setState(() {
+        tableIsLoading = false;
+      });
     }
   }
 
