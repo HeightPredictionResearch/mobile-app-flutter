@@ -30,6 +30,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
     return null;
   }
+  // Validation function to check if the email is valid
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email cannot be empty';
+    }
+
+    // Regular expression for a simple email validation
+    final RegExp emailRegex =
+        RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$');
+
+    if (!emailRegex.hasMatch(value)) {
+      return 'Enter a valid email address';
+    }
+
+    return null;
+  }
 
   Future<void> _register() async {
     setState(() {
@@ -42,7 +58,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     // Validate fields
     String? nameError = _validateNotEmpty(name, 'Name');
-    String? emailError = _validateNotEmpty(email, 'Email');
+    String? emailError = _validateEmail(email);
     String? passwordError = _validateNotEmpty(password, 'Password');
 
     if (nameError != null || emailError != null || passwordError != null) {
