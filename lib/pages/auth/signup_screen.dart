@@ -30,6 +30,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
     return null;
   }
+  
   // Validation function to check if the email is valid
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
