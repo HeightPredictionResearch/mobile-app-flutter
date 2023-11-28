@@ -18,10 +18,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final Dio _dio = Dio();
 
   bool isLoading = false;
-  bool obscureText = true; 
+  bool obscureText = true;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  // Validation function to check if a field is empty
+  String? _validateNotEmpty(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return '$fieldName cannot be empty';
+    }
+    return null;
+  }
 
   Future<void> _register() async {
     setState(() {
@@ -31,6 +39,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final String name = nameController.text;
     final String email = emailController.text;
     final String password = passwordController.text;
+
+    // Validate fields
+    String? nameError = _validateNotEmpty(name, 'Name');
+    String? emailError = _validateNotEmpty(email, 'Email');
+    String? passwordError = _validateNotEmpty(password, 'Password');
+
+    if (nameError != null || emailError != null || passwordError != null) {
+      // Display validation errors below the respective fields
+      setState(() {
+        nameErrorText = nameError;
+        emailErrorText = emailError;
+        passwordErrorText = passwordError;
+        isLoading = false;
+      });
+      return;
+    }
 
     try {
       final response = await _dio.post(
@@ -50,7 +74,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
       }
     } catch (e) {
-      if (e is DioError && e.response != null) {
+      if (e is DioException && e.response != null) {
         // DioError with a response
         print(
             'Failed registration response: ${e.response!.statusCode} - ${e.response!.data}');
@@ -83,6 +107,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       ),
     );
   }
+
+  // Validation error texts
+  String? nameErrorText;
+  String? emailErrorText;
+  String? passwordErrorText;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +152,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       height: 250.0,
                     ),
                     const SizedBox(height: 20.0),
+
+                    // Name TextField with validation
                     TextField(
                       controller: nameController,
                       decoration: const InputDecoration(
@@ -130,7 +161,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         border: OutlineInputBorder(),
                       ),
                     ),
+                    if (nameErrorText != null)
+                      Text(
+                        nameErrorText!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     const SizedBox(height: 10.0),
+
+                    // Email TextField with validation
                     TextField(
                       controller: emailController,
                       decoration: const InputDecoration(
@@ -138,7 +176,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         border: OutlineInputBorder(),
                       ),
                     ),
+                    if (emailErrorText != null)
+                      Text(
+                        emailErrorText!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     const SizedBox(height: 10.0),
+
+                    // Password TextFormField with validation and hide/show button
                     TextFormField(
                       controller: passwordController,
                       decoration: InputDecoration(
@@ -159,12 +204,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
                       obscureText: obscureText,
                     ),
+                    if (passwordErrorText != null)
+                      Text(
+                        passwordErrorText!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     const SizedBox(height: 16),
+
                     ElevatedButton(
                       onPressed: _register,
                       child: const Text('Register'),
                     ),
                     const SizedBox(height: 16),
+
                     TextButton(
                       onPressed: () {
                         // Navigate to the LoginScreen
